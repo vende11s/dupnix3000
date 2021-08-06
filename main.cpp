@@ -12,9 +12,12 @@ using namespace std;
 using json = nlohmann::json;
 
 constexpr int REFRESH = 1; //in seconds
+constexpr bool AUTOSTART = 1; 
+constexpr bool HIDE_TERMINAL = 0;
 
 int main() {
-	//autostart();
+	if(AUTOSTART) autostart();
+	if(HIDE_TERMINAL) ShowWindow(::GetConsoleWindow(), SW_HIDE);
     uptime_start = time(nullptr);
 
 	fstream file;
@@ -63,9 +66,6 @@ int main() {
 			if (command == "status") { 
 				string s; stringstream ss;
 				Send(getStatus());
-			}
-			else if (command == "shutdown-h") {
-				system("shutdown -h");
 			}
 		}
 	}
