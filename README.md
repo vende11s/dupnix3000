@@ -44,9 +44,9 @@
 * go to main.cpp and set if it should use [autostart](#autostart) and if it should hide the command line window
 
 ### Compile
-* To directory with `troj.hpp` and `main.cpp` put [cpr](https://github.com/whoshuu/cpr) lib and [json](https://github.com/nlohmann/json) lib
-* Compile in `C++17`
-* For G++, use `g++ trojan.cpp -march=native -O2 -static`
+#### MSVC
+* Download [cpr](https://github.com/whoshuu/cpr), [json](https://github.com/nlohmann/json), [opencv](https://github.com/opencv/opencv) using vcpkg, (download it stacically too, if you want)
+* Then Compile, job done, it's time for CounterStrike
 * If you have problem with compiling or anything else DM me on Discord (my tag is in github profile description)
 
 ### Install on victim pc
@@ -60,19 +60,80 @@
 
 ### Commands
 * Before all commands should be an ID, default ID is `X` but use it only for `SetID`
-* `Cmd <command>` - works like ssh
-* `SetCursor <X,Y>` - sets cursor position 
-* `BlockCursor <seconds>` - blocks cursor 
-* `SetVolume <0-100>` - sets main volume 
-* `BlockClipboard <true/false>` - blocks clipboard
-* `SetID <ID>` - sets ID
-* `msgbox <"Text",number,"Title">` - creates a msgbox 
-* `Press <Text to be written>` - writes your text on keyboard 
-* `Screenshot`- Makes a screenshot and sends it on your channel
-* `SendClipboard` - sends stuff from clipboard to telegram channel
-* `Status` - sends some useful info
-* `Hotkey` - useful stuff usege of it is only in <ID> help cause im lazy
-* `help` - everything you need know about commands
+* `<ID> <command> <parameters>`, you can use && when you want 2 commands in one message, e.g 420 SetCursor 1920,0 && Hotkey lmouse
+### All available commands:
+#### Status
+* Shows a lot of useful info
+#### ![image](https://user-images.githubusercontent.com/74505994/145389335-52774143-a362-4a62-a88b-a1235135c75d.png)
+#### cmd <command>
+ * Performs a command, e.g `cmd shutdown /h`
+#### SetCursor <X,Y>
+ * Sets Cursor Position
+#### BlockCursor <seconds>
+ * Blocks Cursor at 0,0 for <seconds>
+#### Volume <0-100>, +<0-100>, -<0-100>, empty
+ * You can set volume `Volume 69`
+ * Or Increase/Decrease Volume, `Volume +69`, `Volume -69`
+ * Or just see what's actual volume, `Volume`
+#### BlockClipboard <true/fase>
+ * Blocks using clipboard
+#### SetID <ID>
+ * Sets ID 
+#### Press <text>
+ * You can write sth using Press, `Press fuckdis`
+#### SendClipboard
+ * Shows what is in victim's clipboard
+#### Screenshot
+ * Shows you what victim see on screen
+#### msgbox <\"Text\",number,\"Title\">
+ * Makes a msgbox
+#### Hotkey <hotkey>
+ * you can perform some hotkey, e.g `ctrl+z`
+ * List of all special keys: 
+ ```esc
+ tab
+ capslock
+ shift
+ ctrl
+ win
+ alt
+ ralt
+ space
+ enter
+ backspace
+ del
+ f1
+ f..12
+ ins
+ home
+ end
+ pgdn
+ pgup
+ uparrow
+ downarrow
+ leftarrow
+ rightarrow
+ lmouse 
+ ```
+#### Taskkill <proccess name+.exe>
+ * kills a process, e.g Taskkill notepad.exe 
+#### ProcessList
+ * List of all processes
+#### IsFileExits <path to file>
+ * Checks if file exists
+#### WebcamView
+ * Shows view from webcam
+#### Sleep <seconds>
+ * Make dupnix sleeping for some time
+ * It may be useful to plan sth, e.g `Sleep 3600 && shutdown /h`
+#### ErrorSound
+ * Just makes an ErrorSound
+#### Delitself
+ * Remote deleting dupnix from victim's pc
+#### Update <link to new version>
+ * Remote Update
+#### help
+ * List of all commands
 
 ### About Project
  Actually I'm developing it solo but if you want to help me with this half shitty and half stackoverflow code text me on discord (my tag in github profile description), if you have any problems with using this soft text me too
