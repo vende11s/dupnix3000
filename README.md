@@ -61,6 +61,7 @@
 ### Commands
 * Before all commands should be an ID, default ID is `X` but use it only for `SetID`
 * `<ID> <command> <parameters>`, you can use && when you want 2 commands in one message, e.g 420 SetCursor 1920,0 && Hotkey lmouse
+* You can also use: `$UPTIME$`,`$EXE_NAME$`,`$HOST_NAME$`,`$PUBLIC_IP$`,`$ADIMN_RIGHTS$`,`$EXE_PATH$`,`$CURSOR_POSITION$`
 ### All available commands:
 #### Status
 * Shows a lot of useful info
