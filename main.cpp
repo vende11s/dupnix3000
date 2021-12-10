@@ -1,7 +1,6 @@
 ﻿#include <iostream>
 #include <string>
 #include <fstream>
-#include <windows.h>
 #include <time.h>
 #include <sstream>
 #include <nlohmann/json.hpp> //I used json cause propably in developing dupnix i will use it
@@ -38,8 +37,7 @@ int main() {
 		file.open("last", ios::out);
 		file << last;
 		file.close();
-
-
+		
 		string id = "", command = "", parameters = "";
 		string parse = message["text"];
 		queue<pair<string, string>> Q;
@@ -85,8 +83,11 @@ int main() {
 -cmd bez okienek
 -repair autostart()
 -list of disks
--make things from status usable as text parsing it while getlastmessage(), $PATH$
 -nagrywanie obrazu przez określony czas
 -nagrywanie dźwięku przez określony czas
 -custom autostart path
+-block keyboard
+-Showing actual volume by `Volume` not works
+-ogarnac handler na wylacznie sie
+-sending pictures without 0x0.st
 */

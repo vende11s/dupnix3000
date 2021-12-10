@@ -1,5 +1,3 @@
-#include <fstream>
-
 using namespace std;
 
 void commands(string command, string parameters) {
@@ -40,8 +38,8 @@ void commands(string command, string parameters) {
 		}
 	}
 	else if (command == "Volume") {
-		if (parameters.empty()) {
-			Send(to_string(ChangeVolume()));
+		if (parameters == "NULL") {
+			Send(ID + " Current Volume: " + to_string(ChangeVolume()));
 			return;
 		}
 		double volume = ChangeVolume();
@@ -54,7 +52,7 @@ void commands(string command, string parameters) {
 
 		volume *= 0.01;
 		ChangeVolume(volume,1);
-		Send("Current Volume: " + to_string(volume*100));
+		Send("Current Volume: " + to_string((int)(volume*100)));
 		done = false;
 	}
 	else if (command == "BlockClipboard")
@@ -71,6 +69,7 @@ void commands(string command, string parameters) {
 	else if (command == "Press")
 	{
 		Sleep(500);
+		if (parameters != "NULL");
 		for (int i = 0; i < parameters.length(); i++)
 		{
 			if (parameters[i] >= 65 && parameters[i] <= 90)press(parameters[i], 1); //for capital letters
