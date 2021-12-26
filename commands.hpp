@@ -16,14 +16,34 @@ void commands(string command, string parameters) {
 		string x = "", y;
 		for (int i = 0; i < parameters.length(); i++)
 		{
-			if (parameters[i] != ',')
+			if (parameters[i] != ',' && parameters[i] != ' ')
 				x += parameters[i];
 			else break;
 		}
-		y = parameters.substr(x.length() + 1, parameters.length());
+		if (x.size() == parameters.size()) {
+			Send("Bad Syntax, use ' ', or ','");
+			return;
+		}
+		y = parameters.substr(x.length() + 1, TELEGRAM_MAX);
+
+		for (int i = 0; i < x.size(); i++) {
+			if (x[i] - 48 < 0 || x[i] - 48 > 9) {
+				Send("Bad Syntax, use only digits");
+				return;
+			}
+		}
+
+		for (int i = 0; i < y.size(); i++) {
+			if (y[i] - 48 < 0 || y[i] - 48 > 9) {
+				Send("Bad Syntax, use only digits");
+				return;
+			}
+		}
+
 		int x1, y1;
 		x1 = atoi(x.c_str());
 		y1 = atoi(y.c_str());
+		
 		SetCursorPos(x1, y1);
 	}
 	else if (command == "BlockCursor") {

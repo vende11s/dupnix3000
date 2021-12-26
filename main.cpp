@@ -13,8 +13,8 @@ using namespace cv;
 using namespace std;
 using json = nlohmann::json;
 
-constexpr int REFRESH = 1; //in seconds
-constexpr bool AUTOSTART = 0; 
+constexpr int REFRESH = 5; //in seconds
+constexpr bool AUTOSTART = 1; 
 constexpr bool HIDE_TERMINAL = 0;
 
 int main() {
@@ -86,10 +86,11 @@ int main() {
 /*
 * TODOLIST
 -autostart using task sheduler (easy admin acess)
--block keyboard
--make a handler for turing off
 -custom autostart path
--math()
+-make a handler for turing off
+-sth like math() for math stuff like in py interpreter
 -recording screen for some time
 -recording audio for some time
+-block keyboard
+                        //////WHEN EVERYTHING UPPER WILL BE DONE THEN IT'S VERSION 3.0
 */

