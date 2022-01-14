@@ -140,7 +140,11 @@
 #### ![image](https://user-images.githubusercontent.com/74505994/146407474-0aca95b0-220c-4f01-885f-b1e0c51a6792.png)
 #### WifiList
  * Gives you a list of Wifi names and passwords for them
-
+#### CloseForeground <true/false>
+ * Pretty cool troll which closing every window you click at
+#### WriteToClipboard
+ * You can put sth inside the clipboard
+ 
 #### Delitself
  * Remote deleting dupnix from victim's pc
 #### Update <link to new version>
