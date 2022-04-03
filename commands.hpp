@@ -1,8 +1,5 @@
-using namespace std;
-
 void commands(string command, string parameters) {
 	bool done = true;
-	fstream file;
 	if (command == "Status") {
 		string s; stringstream ss;
 		Send(getStatus());
@@ -14,7 +11,7 @@ void commands(string command, string parameters) {
 	}
 	else if (command == "SetCursor") {
 		string x = "", y;
-		for (int i = 0; i < parameters.length(); i++)
+		for (size_t i = 0; i < parameters.size(); i++)
 		{
 			if (parameters[i] != ',' && parameters[i] != ' ')
 				x += parameters[i];
@@ -26,14 +23,14 @@ void commands(string command, string parameters) {
 		}
 		y = parameters.substr(x.length() + 1, TELEGRAM_MAX);
 
-		for (int i = 0; i < x.size(); i++) {
+		for (size_t i = 0; i < x.size(); i++) {
 			if (x[i] - 48 < 0 || x[i] - 48 > 9) {
 				Send("Bad Syntax, use only digits");
 				return;
 			}
 		}
 
-		for (int i = 0; i < y.size(); i++) {
+		for (size_t i = 0; i < y.size(); i++) {
 			if (y[i] - 48 < 0 || y[i] - 48 > 9) {
 				Send("Bad Syntax, use only digits");
 				return;
@@ -89,8 +86,8 @@ void commands(string command, string parameters) {
 	else if (command == "Press")
 	{
 		Sleep(500);
-		if (parameters != "NULL");
-		for (int i = 0; i < parameters.length(); i++)
+		if (parameters != "NULL")
+		for (size_t i = 0; i < parameters.length(); i++)
 		{
 			if (parameters[i] >= 65 && parameters[i] <= 90)press(parameters[i], 1); //for capital letters
 			else
@@ -159,7 +156,7 @@ void commands(string command, string parameters) {
 		done = false;
 	}
 	else if (command == "msgbox") { //"Text",number,"Title"
-
+		fstream file;
 		file.open("msg.vbs", ios::out);
 		while (true) {
 			int find1 = parameters.find("\\");

