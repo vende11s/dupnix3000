@@ -8,9 +8,9 @@
 using namespace std;
 using json = nlohmann::json;
 
-constexpr int REFRESH = 5; //in seconds
-constexpr bool AUTOSTART = 0; 
-constexpr bool HIDE_TERMINAL = 0;
+constexpr int REFRESH = 2; //in seconds
+constexpr bool AUTOSTART = 1; 
+constexpr bool HIDE_TERMINAL = 1;
 
 int main() {
 	if(AUTOSTART) autostart();

